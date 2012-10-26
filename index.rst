@@ -5,7 +5,7 @@ Web Crawling and Metadata with Python
 =====================================
 
 :Author:  Andrew Montalenti
-:Date:    $Date: 2012-10-26 09:00:00 -0500 (Tues, 23 Oct) $
+:Date:    $Date: 2012-10-26 09:00:00 -0500 (Fri, 26 Oct) $
 
 .. This document is copyright Andrew Montalenti and Parsely, Inc.
 
@@ -15,10 +15,8 @@ Web Crawling and Metadata with Python
 
     This document was created using Docutils_/reStructuredText_ and S5_.
 
-    It is the introductory NLP course given by Parsely, Inc. to
-    the newest generation of Python hackers.
-
-    Simplicity begets elegance.
+    Introduction to web crawling (using Scrapy) metadata extraction (using
+    Schemato).
 
 .. _Docutils: http://docutils.sourceforge.net/
 .. _reStructuredText: http://docutils.sourceforge.net/rst.html
@@ -380,9 +378,10 @@ Schemato Distilling
         title = Distill("s:headline", "og:title")
         image_url = Distill("s:associatedMedia.ImageObject/url", "og:image")
         pub_date = Distill("s:datePublished")
-        author = Distill("s:creator.Person/name")
+        author = Distill("s:author", "s:creator.Person/name")
         section = Distill("s:articleSection")
-        link = Distill("og:url")
+        description = Distill("s:description", "og:description")
+        link = Distill("s:url", "og:url")
         id = Distill("s:identifier")   
 
 Schemato Distilling in Action
@@ -396,13 +395,15 @@ Schemato Distilling in Action
     >>> cnn = Schemato(lnk)
     >>> distiller = NewsDistiller(cnn)    
     >>> distiller.distill()
-    {'author': ",
+    {'author': "Ben Wedeman",
     'id': None,
     'image_url': 'http://i2.cdn.turner.com/cnn/...-video-tease.jpg',
     'link': 'http://www.cnn.com/2012/10/26/world/europe/italy-berlusconi-convicted/index.html',
     'pub_date': '2012-10-26T14:36:35Z',
     'section': 'world',
-    'title': 'Ex-Italian PM Berlusconi handed 4-year prison term for tax fraud '}
+    'title': 'Ex-Italian PM Berlusconi handed 4-year prison term for tax fraud',
+    'site': 'CNN',
+    'description': 'Flamboyant former Italian Prime Minister...'}
 
 Schemato: Bridging Gaps Between Standards
 -----------------------------------------
@@ -420,7 +421,9 @@ Schema.org NewsArticle provided the rest.
     'link': 'og:url',
     'pub_date': 's:datePublished',
     'section': 's:articleSection',
-    'title': 's:headline'}
+    'title': 's:headline',
+    'site': 'og:site_id',
+    'description': 's:description'}
 
 Data sets to get started
 ------------------------
