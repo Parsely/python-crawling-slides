@@ -382,6 +382,7 @@ Schemato Distilling
         section = Distill("s:articleSection")
         description = Distill("s:description", "og:description")
         link = Distill("s:url", "og:url")
+        site = Distill("og:site_id")
         id = Distill("s:identifier")   
 
 Schemato Distilling in Action
