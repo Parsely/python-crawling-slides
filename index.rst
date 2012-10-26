@@ -211,15 +211,229 @@ Just trust me: use Scrapy.
 Scrapy Overview
 ---------------
 
-Outline
--------
+.. sourcecode:: sh
 
-* brief introduction to scrapy
-* some scrapy examples
-* overview of scrapy cloud
-* scrapy toolbox: w3lib, scrapely, slybot
-* how crawling and metadata relate, and what it means to you
-* some shortcuts to get started: datasets for sale, diffbot API
+    $ git clone git://github.com/scrapy/dirbot.git
+    $ cd dirbot
+    $ mkvirtualenv dirbot
+    $ pip install scrapy
+    $ pip install ipython
+    $ scrapy list
+    dmoz
+    $ scrapy crawl dmoz
+    [scrapy] INFO: Scrapy 0.16.0 started (bot: dirbot)
+    ...
+
+Example Output
+--------------
+
+.. sourcecode:: sh
+
+    [dmoz] DEBUG: Crawled (200) <GET http://dmoz.org/Comp.../Python/Resources/>
+    [dmoz] DEBUG: Crawled (200) <GET http://dmoz.org/Comp.../Python/Books/>
+    [dmoz] DEBUG: Scraped from <200 http://dmoz.org/Comp.../Python/Resources/>
+                Website: name=[u'Top'] url=[u'/']
+    [dmoz] DEBUG: Scraped from <200 http://dmoz.org/Comp.../Python/Resources/>
+                Website: name=[u'Computers'] url=[u'/Computers/']
+    [dmoz] DEBUG: Scraped from <200 http://dmoz.org/Comp.../Python/Resources/>
+                Website: name=[u'Programming'] url=[u'/Computers/Programming/']
+    ...
+    [dmoz] DEBUG: Scraped from <200 http://dmoz.org/.../Python/Books/>
+        Website: name=[u'Text Processing in Python'] url=[u'http://gnosis.cx/TPiP/']
+
+    [dmoz] INFO: Spider closed (finished)
+
+Links:
+
+* http://www.dmoz.org/Computers/Programming/Languages/Python/Resources/ 
+* http://www.dmoz.org/Computers/Programming/Languages/Python/Books/
+
+Spider Example
+--------------
+
+.. sourcecode:: python
+
+    class DmozSpider(BaseSpider):
+        name = "dmoz"
+        allowed_domains = ["dmoz.org"]
+        start_urls = [
+            "http://www.dmoz.org/Computers/Programming/Languages/Python/Books/",
+            "http://www.dmoz.org/Computers/Programming/Languages/Python/Resources/",
+        ]
+
+        def parse(self, response):
+            hxs = HtmlXPathSelector(response)
+            sites = hxs.select('//ul/li')
+            items = []
+            for site in sites:
+                item = Website()
+                item['name'] = site.select('a/text()').extract()
+                item['url'] = site.select('a/@href').extract()
+                item['description'] = site.select('text()').extract()
+                items.append(item)
+            return items
+
+Live Demos!
+-----------
+
+Examples: DailyCaller.com, ArsTechnica.com
+
+* https://www.stypi.com/pixelmonkey/dailycaller.py
+* https://www.stypi.com/pixelmonkey/arstechnica.py
+
+Item
+----
+
+.. sourcecode:: python
+
+    from scrapy.item import Item, Field
+
+    class DbItem(Item):
+        title = Field()
+        link = Field()
+
+DailyCaller: imperative style
+-----------------------------
+
+.. sourcecode:: python
+
+    from scrapy.spider import BaseSpider
+    from scrapy.selector import HtmlXPathSelector
+    from dirbot.items import DbItem
+
+    class DailycallerSpider(BaseSpider):
+        name = "dailycaller.com"
+        allowed_domains = ["dailycaller.com"]
+        start_urls = ["http://dailycaller.com"]
+
+        def parse(self, response):
+            hxs = HtmlXPathSelector(response)
+            item = DbItem()
+            item["title"] = hxs.select("//h1/text()").extract()[0]
+            item["link"] = hxs.select("//link[@rel='canonical']/@href").extract()[0]
+            return item
+
+ArsTechnica: declarative style
+------------------------------
+
+.. sourcecode:: python
+
+    from scrapy.spider import BaseSpider
+    from scrapy.selector import HtmlXPathSelector
+    from dirbot.items import DbItem
+
+    from scrapy.contrib.loader import XPathItemLoader
+    from scrapy.contrib.loader.processor import TakeFirst
+
+    class ArstechnicaSpider(BaseSpider):
+        name = "arstechnica.com"
+        allowed_domains = ["arstechnica.com"]
+        start_urls = ["http://arstechnica.com"]
+
+        def parse(self, response):
+            loader = XPathItemLoader(item=DbItem(), response=response)
+            loader.add_xpath("title", "//meta/[@property='og:title']/@content")
+            loader.add_xpath("link", "//link[@rel='canonical']/@href")
+            item = loader.load_item()
+            item["title"] = loader.get_value(item["title"], TakeFirst(), unicode.title)
+            item["link"] = loader.get_value(item["link"], TakeFirst())
+            return item
+
+Live Spider Shell
+-----------------
+
+.. sourcecode:: python
+
+    >>> fetch("http://dailycaller.com/2012...-most-rallies/")
+    [dailycaller.com] INFO: Spider opened
+    [dailycaller.com] DEBUG: Crawled (200) <GET http://dailycaller.com/...ies/>
+    [s] Available Scrapy objects:
+    [s]   hxs        <HtmlXPathSelector xpath...>
+    [s]   item       Website: name=None url=None
+    [s]   request    <GET http://dailycaller.com/...es/>
+    [s]   response   <200 http://dailycaller.com/...es/>
+    [s]   settings   <CrawlerSettings module=<module 'dirbot.settings'>
+    [s]   spider     <DailycallerSpider 'dailycaller.com' at 0x2484d90>
+    [s] Useful shortcuts:
+    [s]   shelp()           Shell help
+    [s]   fetch(req_or_url) Fetch request (or URL) and update local objects
+    [s]   view(response)    View response in a browser
+    >>> hxs.select("//title/text()")
+
+Scrapy Cloud Demo
+-----------------
+
+How we host, test, and QA our spiders across millions of pages.
+
+Schemato Overview
+-----------------
+
+Domo arigato, Mr. Schemato!
+
+Schemato Distilling
+-------------------
+
+.. sourcecode:: python
+
+    from distillers import Distill, Distiller                                                                                                              
+    class NewsDistiller(Distiller):
+        title = Distill("s:headline", "og:title")
+        image_url = Distill("s:associatedMedia.ImageObject/url", "og:image")
+        pub_date = Distill("s:datePublished")
+        author = Distill("s:creator.Person/name")
+        section = Distill("s:articleSection")
+        link = Distill("og:url")
+        id = Distill("s:identifier")   
+
+Schemato Distilling in Action
+-----------------------------
+
+.. sourcecode:: python
+
+    >>> from distillery import NewsDistiller
+    >>> from schemato import Schemato
+    >>> lnk = "http://www.cnn.com/2012/10/26/world/europe/italy-berlusconi-convicted/index.html"
+    >>> cnn = Schemato(lnk)
+    >>> distiller = NewsDistiller(cnn)    
+    >>> distiller.distill()
+    {'author': ",
+    'id': None,
+    'image_url': 'http://i2.cdn.turner.com/cnn/...-video-tease.jpg',
+    'link': 'http://www.cnn.com/2012/10/26/world/europe/italy-berlusconi-convicted/index.html',
+    'pub_date': '2012-10-26T14:36:35Z',
+    'section': 'world',
+    'title': 'Ex-Italian PM Berlusconi handed 4-year prison term for tax fraud '}
+
+Schemato: Bridging Gaps Between Standards
+-----------------------------------------
+
+Facebook OpenGraph provided image_url and link.
+
+Schema.org NewsArticle provided the rest.
+
+.. sourcecode:: python
+
+    >>> distiller.sources 
+    {'author': 's:author',
+    'id': None,
+    'image_url': 'og:image',
+    'link': 'og:url',
+    'pub_date': 's:datePublished',
+    'section': 's:articleSection',
+    'title': 's:headline'}
+
+Schemato: A Call to Action
+--------------------------
+
+The time is ripe for the semantic web.
+
+Want to build the ultimate web metadata validator, distiller, and extractor?
+
+Want to work on getting Schemato to run across millions of URLs?
+
+Want your contributions open source on Github?
+
+Find me at the sprints on Sunday!
 
 Baby Turtles
 ------------
