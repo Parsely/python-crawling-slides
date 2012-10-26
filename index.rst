@@ -422,6 +422,22 @@ Schema.org NewsArticle provided the rest.
     'section': 's:articleSection',
     'title': 's:headline'}
 
+Data sets to get started
+------------------------
+
+Are you interested in tackling some of these web crawling problems on your own project?
+
+If so, you may want some data to get started.
+
+I currently sell a few news data sets that help with this:
+
+* 30M news headlines and 500K web sources, 30gb of JSON data ($300)
+* 15K news domains that are the most popular in US market ($100)
+
+You could use either of these to build your own Google News, for example.
+
+Interested? Find me after or tweet me: amontalenti_
+
 Schemato: A Call to Action
 --------------------------
 
